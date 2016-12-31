@@ -2,19 +2,13 @@ const http = require('http');
 const fs = require('fs');
 const querystring = require('querystring');
 
-
-let existingFiles = ['helium.html', 'hydrogen.html', 'index.html', 'css/styles.css'];
-
+let existingFiles = fs.readdirSync('./public');
 
 const server = http.createServer((req,res) => {
   res.setHeader('Content-Type', 'text/html');
   console.log(req.method)
-  console.log(req.url)
-  req.url = req.url.substring(1);
-  console.log(req.url)
-
-  if(req.url.endsWith('.css')) {
-    res.setHeader('Content-Type', 'text/css')
+  if(req.url !== '/') {
+    req.url = req.url.substring(1);
   }
 
   if(req.method === 'POST' && req.url === 'element') {
@@ -44,27 +38,18 @@ const server = http.createServer((req,res) => {
         fs.writeFile(`./public/${fileName}`, template, (err) => {
           if (err) throw err;
         })
-        existingFiles.push(fileName);
-        console.log(existingFiles);
         res.writeHead(200, { 'Content-Type': 'application/json'});
-
-        let li = `
-        <li>
-          <a href="${fileName}">${elementName}</a>
-        </li>`
-
-        createNewLine(li);
-
+        let li = `<li>\n<a href="${fileName}">${elementName}</a>\n</li>`
+        createNewLi(li);
         res.end(`{ "success" : true }`);
+      } else {
+        res.end(`{ "success" : false }`);
       }
-
     })
-
-    req.on('end', () => {
-    })
-  }
+  } // close POST method conditional
 
   if(req.method === 'GET') {
+      console.log(req.url);
       let exists = false;
       if(req.url === '/') {
         req.url = 'index.html'
@@ -73,9 +58,13 @@ const server = http.createServer((req,res) => {
       existingFiles.forEach((x) => {
         if(x === req.url) {
           exists = true;
-          console.log('hi')
         }
       })
+
+      if(req.url.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css')
+        exists = true;
+      }
 
       if(exists) {
         fs.readFile(`./public/${req.url}`, (err, fileContent) => {
@@ -91,17 +80,12 @@ const server = http.createServer((req,res) => {
           res.end();
         })
       }
-
-
   }
-
-
-});
+}); // closing bracket for createServer
 
 server.listen(8080, () => {
   console.log('opened server on', server.address())
 })
-
 
 function generateTemplate(elementName, elementSymbol, elementAtomicNumber, elementDescription) {
   return `
@@ -120,20 +104,16 @@ function generateTemplate(elementName, elementSymbol, elementAtomicNumber, eleme
   <p><a href="/">back</a></p>
 </body>
 </html>`
-
 }
 
-function createNewLine(li) {
-
-fs.readFile('./public/index.html', (err, fileContent) => {
-  data = fileContent.toString().split("\n");
-  data.splice(12, 0, li);
-  var text = data.join("\n");
+function createNewLi(li) {
+  fs.readFile('./public/index.html', (err, fileContent) => {
+    data = fileContent.toString().split("\n");
+    data.splice(12, 0, li);
+    var text = data.join("\n");
 
   fs.writeFile('./public/index.html', text, function (err) {
     if (err) return console.log(err);
-  });
-})
-
-
+    });
+  })
 }
