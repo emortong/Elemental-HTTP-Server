@@ -1,0 +1,28 @@
+{
+  "name": "Elemental-HTTP-Server",
+  "version": "1.0.0",
+  "description": "### Basic HTTP Server that reads from and writes to fs",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/emortong/Elemental-HTTP-Server.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/emortong/Elemental-HTTP-Server/issues"
+  },
+  "xo": {
+      "esnext": true,
+      "space": true,
+      "globals": [
+        "window"
+      ]
+    }
+  "homepage": "https://github.com/emortong/Elemental-HTTP-Server#readme"
+}
