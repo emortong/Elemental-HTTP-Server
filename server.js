@@ -7,7 +7,7 @@ let existingFiles = null;
 const server = http.createServer((req,res) => {
 
   function setResponse() {
-    res.setHeader('Content-Type', 'text/html');
+    // res.setHeader('Content-Type', 'text/html');
     console.log(req.method)
     if(req.url !== '/') {
       req.url = req.url.substring(1);
@@ -41,7 +41,7 @@ const server = http.createServer((req,res) => {
             if (err) throw err;
           })
           res.writeHead(200, { 'Content-Type': 'application/json'});
-          let li = `    <li>\n      <a href="${fileName}">${elementName}</a>\n    </li>`
+          let li = `    <li>\n      <a href="/${fileName}">${elementName}</a>\n    </li>`
           createNewLi(li);
           res.end(`{ "success" : true }`);
         } else {
@@ -85,6 +85,7 @@ const server = http.createServer((req,res) => {
     }
 
     if(req.method === 'PUT') {
+    res.setHeader('Content-Type', 'application/json');
     let rawData = '';
 
      req.on('data', (data) => {
@@ -121,13 +122,40 @@ const server = http.createServer((req,res) => {
           let oldEl = `      <a href="/${req.url}">${oldElement}</a>`
           console.log(newEl)
           console.log(oldEl)
-          replaceLi(newEl, oldEl);
+          replaceEl(newEl, oldEl);
           res.end(`{ "success" : true }`);
         } else {
-          res.end(`{ "success" : false }`);
+          res.statusCode = 500;
+          res.end(`{ "error" : "resource /carbon.html does not exist" }`);
         }
       });
     }
+
+    if(req.method === 'DELETE') {
+      console.log(req.url)
+      let element = req.url.split('.');
+      element = element[0];
+      element = toTitleCase(element);
+      existingFiles.forEach((x) => {
+        if(x === req.url) {
+          exists = true;
+        }
+      })
+      if(exists) {
+        fs.unlink(`./public/${req.url}`, (err) => {
+          if (err) throw err;
+          let li = `      <a href="/${req.url}">${element}</a>`;
+          deleteLi(li);
+          res.end(`{ "success" : true }`)
+        });
+      } else {
+        res.statusCode = 500;
+        res.setHeader('Content-Type', 'application/json');
+        res.end(`{ "error" : "resource /carbon.html does not exist" }`)
+
+      }
+    }
+
   } // setResponse
 
   fs.readdir('./public', (err, files) => {
@@ -173,12 +201,28 @@ function createNewLi(li) {
   })
 }
 
-function replaceLi(newEl, oldEl) {
+function replaceEl(newEl, oldEl) {
   fs.readFile('./public/index.html', (err, fileContent) => {
     data = fileContent.toString().split("\n");
     let oldElIndex = data.indexOf(oldEl);
     console.log(oldElIndex);
     data.splice(oldElIndex, 1, newEl);
+    var text = data.join("\n");
+
+  fs.writeFile('./public/index.html', text, function (err) {
+    if (err) return console.log(err);
+    });
+  })
+}
+
+function deleteLi(li) {
+  fs.readFile('./public/index.html', (err, fileContent) => {
+    data = fileContent.toString().split("\n");
+    let indextoDelete = data.indexOf(li) -1;
+    console.log(li);
+    data.splice(indextoDelete, 1);
+    data.splice(indextoDelete, 1);
+    data.splice(indextoDelete, 1);
     var text = data.join("\n");
 
   fs.writeFile('./public/index.html', text, function (err) {
