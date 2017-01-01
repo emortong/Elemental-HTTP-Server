@@ -41,7 +41,7 @@ const server = http.createServer((req,res) => {
             if (err) throw err;
           })
           res.writeHead(200, { 'Content-Type': 'application/json'});
-          let li = `<li>\n<a href="${fileName}">${elementName}</a>\n</li>`
+          let li = `    <li>\n      <a href="${fileName}">${elementName}</a>\n    </li>`
           createNewLi(li);
           res.end(`{ "success" : true }`);
         } else {
@@ -106,6 +106,9 @@ const server = http.createServer((req,res) => {
       })
 
        if(exists) {
+          let oldElement = req.url.split('.');
+          oldElement = toTitleCase(oldElement[0]);
+          console.log(oldElement);
           let fileWriteStream = fs.readFile(`./public/${req.url}`)
           fs.writeFile(`./public/${req.url}`, template, (err) => {
             if (err) throw err;
@@ -114,18 +117,17 @@ const server = http.createServer((req,res) => {
             if (err) throw err;
           })
           res.writeHead(200, { 'Content-Type': 'application/json'});
-          let li = `<li>\n<a href="${fileName}">${elementName}</a>\n</li>`
-          // createNewLi(li);
+          let newEl = `      <a href="/${fileName}">${elementName}</a>`;
+          let oldEl = `      <a href="/${req.url}">${oldElement}</a>`
+          console.log(newEl)
+          console.log(oldEl)
+          replaceLi(newEl, oldEl);
           res.end(`{ "success" : true }`);
         } else {
           res.end(`{ "success" : false }`);
         }
       });
-
-
     }
-
-
   } // setResponse
 
   fs.readdir('./public', (err, files) => {
@@ -169,4 +171,24 @@ function createNewLi(li) {
     if (err) return console.log(err);
     });
   })
+}
+
+function replaceLi(newEl, oldEl) {
+  fs.readFile('./public/index.html', (err, fileContent) => {
+    data = fileContent.toString().split("\n");
+    let oldElIndex = data.indexOf(oldEl);
+    console.log(oldElIndex);
+    data.splice(oldElIndex, 1, newEl);
+    var text = data.join("\n");
+
+  fs.writeFile('./public/index.html', text, function (err) {
+    if (err) return console.log(err);
+    });
+  })
+}
+
+function toTitleCase(str) {
+    return str.replace(/\w\S*/g, function(txt){
+      return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+    });
 }
