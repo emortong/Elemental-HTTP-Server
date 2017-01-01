@@ -7,15 +7,16 @@ let existingFiles = null;
 const server = http.createServer((req,res) => {
 
   function setResponse() {
-    // res.setHeader('Content-Type', 'text/html');
     console.log(req.method)
     if(req.url !== '/') {
       req.url = req.url.substring(1);
     }
     let exists = false;
+
     //========================
     //   POST
     //========================
+
     if(req.method === 'POST' && req.url === 'element') {
       let rawData = '';
       req.on('data', (data) => {
@@ -44,10 +45,10 @@ const server = http.createServer((req,res) => {
           createNewLi(li);
           res.end(`{ "success" : true }`);
         } else {
-          res.end(`{ "success" : false }`);
-        }
+            res.end(`{ "success" : false }`);
+          }
       })
-    } // close POST method conditional
+    }
 
     //========================
     //   GET
