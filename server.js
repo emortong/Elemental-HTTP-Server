@@ -3,54 +3,81 @@ const fs = require('fs');
 const querystring = require('querystring');
 let existingFiles = null;
 
+let auth = {
+  username: 'emortong',
+  password: 'duque'
+}
+
 const server = http.createServer((req,res) => {
 
   function setResponse() {
     let number = existingFiles.length - 5;
     console.log(req.method)
-    console.log(existingFiles)
     if(req.url !== '/') {
       req.url = req.url.substring(1);
     }
     let exists = false;
+    let authorized = false;
 
     //========================
     //   POST
     //========================
 
     if(req.method === 'POST' && req.url === 'element') {
-      let rawData = '';
-      req.on('data', (data) => {
-        rawData += data;
-        let parsedData = querystring.parse(rawData);
-        let fileName = `${parsedData.elementName.toLowerCase()}.html`;
-        let elementName = parsedData.elementName;
-        let elementSymbol = parsedData.elementSymbol;
-        let elementAtomicNumber = parsedData.elementAtomicNumber;
-        let elementDescription = parsedData.elementDescription;
-        let template = generateTemplate(elementName, elementSymbol, elementAtomicNumber, elementDescription)
+      console.log(req.headers.authorization);
+      if(req.headers.authorization === undefined) {
+        res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Secure Area"'});
+        res.end('<html><body>Not Authorized</body></html>')
+        console.log('hi')
+      } else {
+        let authArr = req.headers.authorization.split(' ');
+        let encodedString = authArr[1];
+        let base64Buffer = new Buffer(encodedString, 'base64');
+        let decodedString = base64Buffer.toString();
+        let userAndPass = decodedString.split(':');
 
-        existingFiles.forEach((x) => {
-          if(x === fileName) {
-            exists = true;
-          }
-        })
-
-        if(!exists) {
-          let fileWriteStream = fs.createWriteStream(`./public/${fileName}`)
-          fs.writeFile(`./public/${fileName}`, template, (err) => {
-            if (err) throw err;
-          })
-          res.writeHead(200, { 'Content-Type': 'application/json'});
-          let li = `    <li>\n      <a href="/${fileName}">${elementName}</a>\n    </li>`
-          createNewLi(li, () => {
-            changeNumber('add', number);
-          });
-          res.end(`{ "success" : true }`);
+        if(userAndPass[0] === auth.username && userAndPass[1] === auth.password) {
+          authorized = true;
+          runPost()
         } else {
-            res.end(`{ "success" : false }`);
-          }
-      })
+          res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Secure Area"'});
+          res.end('<html><body>Invalid Authentication Credentials</body></html>')
+        }
+      }
+      function runPost() {
+        let rawData = '';
+        req.on('data', (data) => {
+          rawData += data;
+          let parsedData = querystring.parse(rawData);
+          let fileName = `${parsedData.elementName.toLowerCase()}.html`;
+          let elementName = parsedData.elementName;
+          let elementSymbol = parsedData.elementSymbol;
+          let elementAtomicNumber = parsedData.elementAtomicNumber;
+          let elementDescription = parsedData.elementDescription;
+          let template = generateTemplate(elementName, elementSymbol, elementAtomicNumber, elementDescription)
+
+          existingFiles.forEach((x) => {
+            if(x === fileName) {
+              exists = true;
+            }
+          })
+
+          if(!exists) {
+            let fileWriteStream = fs.createWriteStream(`./public/${fileName}`)
+            fs.writeFile(`./public/${fileName}`, template, (err) => {
+              if (err) throw err;
+            })
+            res.writeHead(200, { 'Content-Type': 'application/json'});
+            let li = `    <li>\n      <a href="/${fileName}">${elementName}</a>\n    </li>`
+            createNewLi(li, () => {
+              changeNumber('add', number);
+            });
+            res.end(`{ "success" : true }`);
+          } else {
+              res.end(`{ "success" : false }`);
+            }
+        })
+      }
     }
 
     //========================
@@ -60,6 +87,28 @@ const server = http.createServer((req,res) => {
     if(req.method === 'GET') {
         if(req.url === '/') {
           req.url = 'index.html'
+        } else if (req.url === 'create.html') {
+            if(req.headers.authorization === undefined) {
+              res.statusCode = 401;
+              res.setHeader('WWW-Authenticate', 'Basic realm="Secure Area"');
+              res.end();
+              return;
+            } else {
+                let authArr = req.headers.authorization.split(' ');
+                let encodedString = authArr[1];
+                let base64Buffer = new Buffer(encodedString, 'base64');
+                let decodedString = base64Buffer.toString();
+                let userAndPass = decodedString.split(':');
+
+                if(userAndPass[0] === auth.username && userAndPass[1] === auth.password) {
+                  authorized = true;
+                  // pass through
+                } else {
+                  res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Secure Area"'});
+                  res.end('<html><body>Invalid Authentication Credentials</body></html>')
+                }
+            }
+
         }
 
         existingFiles.forEach((x) => {
@@ -94,76 +143,119 @@ const server = http.createServer((req,res) => {
     //========================
 
     if(req.method === 'PUT') {
-    res.setHeader('Content-Type', 'application/json');
-    let rawData = '';
+      if(req.headers.authorization === undefined) {
+        res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Secure Area"'});
+        res.end('<html><body>Not Authorized</body></html>')
+        console.log('hi')
+      } else {
+        let authArr = req.headers.authorization.split(' ');
+        let encodedString = authArr[1];
+        let base64Buffer = new Buffer(encodedString, 'base64');
+        let decodedString = base64Buffer.toString();
+        let userAndPass = decodedString.split(':');
 
-     req.on('data', (data) => {
-        rawData += data;
-        let parsedData = querystring.parse(rawData);
-        let fileName = `${parsedData.elementName.toLowerCase()}.html`;
-        let elementName = parsedData.elementName;
-        let elementSymbol = parsedData.elementSymbol;
-        let elementAtomicNumber = parsedData.elementAtomicNumber;
-        let elementDescription = parsedData.elementDescription;
-        let template = generateTemplate(elementName, elementSymbol, elementAtomicNumber, elementDescription)
-
-      existingFiles.forEach((x) => {
-        if(x === req.url) {
-          exists = true;
-        }
-      })
-
-       if(exists) {
-          let oldElement = req.url.split('.');
-          oldElement = toTitleCase(oldElement[0]);
-          let fileWriteStream = fs.readFile(`./public/${req.url}`)
-          fs.writeFile(`./public/${req.url}`, template, (err) => {
-            if (err) throw err;
-          })
-          fs.rename(`./public/${req.url}`,`./public/${fileName}`, (err) => {
-            if (err) throw err;
-          })
-          res.writeHead(200, { 'Content-Type': 'application/json'});
-          let newEl = `      <a href="/${fileName}">${elementName}</a>`;
-          let oldEl = `      <a href="/${req.url}">${oldElement}</a>`
-          replaceEl(newEl, oldEl);
-          res.end(`{ "success" : true }`);
+        if(userAndPass[0] === auth.username && userAndPass[1] === auth.password) {
+          authorized = true;
+          runPut()
         } else {
-          res.statusCode = 500;
-          res.end(`{ "error" : "resource /${req.url} does not exist" }`);
+          res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Secure Area"'});
+          res.end('<html><body>Invalid Authentication Credentials</body></html>')
         }
-      });
-    }
+      }
+      function runPut() {
+        res.setHeader('Content-Type', 'application/json');
+        let rawData = '';
+
+         req.on('data', (data) => {
+            rawData += data;
+            let parsedData = querystring.parse(rawData);
+            let fileName = `${parsedData.elementName.toLowerCase()}.html`;
+            let elementName = parsedData.elementName;
+            let elementSymbol = parsedData.elementSymbol;
+            let elementAtomicNumber = parsedData.elementAtomicNumber;
+            let elementDescription = parsedData.elementDescription;
+            let template = generateTemplate(elementName, elementSymbol, elementAtomicNumber, elementDescription)
+
+          existingFiles.forEach((x) => {
+            if(x === req.url) {
+              exists = true;
+            }
+          })
+
+           if(exists) {
+              let oldElement = req.url.split('.');
+              oldElement = toTitleCase(oldElement[0]);
+              let fileWriteStream = fs.readFile(`./public/${req.url}`)
+              fs.writeFile(`./public/${req.url}`, template, (err) => {
+                if (err) throw err;
+              })
+              fs.rename(`./public/${req.url}`,`./public/${fileName}`, (err) => {
+                if (err) throw err;
+              })
+              res.writeHead(200, { 'Content-Type': 'application/json'});
+              let newEl = `      <a href="/${fileName}">${elementName}</a>`;
+              let oldEl = `      <a href="/${req.url}">${oldElement}</a>`
+              replaceEl(newEl, oldEl);
+              res.end(`{ "success" : true }`);
+            } else {
+              res.statusCode = 500;
+              res.end(`{ "error" : "resource /${req.url} does not exist" }`);
+            }
+          });
+        }
+      }
 
       //========================
       //   DELETE
       //========================
 
       if(req.method === 'DELETE') {
-        let element = req.url.split('.');
-        element = element[0];
-        element = toTitleCase(element);
-        existingFiles.forEach((x) => {
-          if(x === req.url) {
-            exists = true;
-          }
-        })
-        if(exists) {
-          fs.unlink(`./public/${req.url}`, (err) => {
-            if (err) throw err;
-            let li = `      <a href="/${req.url}">${element}</a>`;
-            deleteLi(li, () => {
-              changeNumber('sub', number);
-            });
-            res.writeHead(200, { 'Content-Type': 'application/json'});
-            res.end(`{ "success" : true }`)
-          });
+        if(req.headers.authorization === undefined) {
+        res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Secure Area"'});
+        res.end('<html><body>Not Authorized</body></html>')
+        console.log('hi')
+      } else {
+        let authArr = req.headers.authorization.split(' ');
+        let encodedString = authArr[1];
+        let base64Buffer = new Buffer(encodedString, 'base64');
+        let decodedString = base64Buffer.toString();
+        let userAndPass = decodedString.split(':');
+
+        if(userAndPass[0] === auth.username && userAndPass[1] === auth.password) {
+          authorized = true;
+          runDelete()
         } else {
-          res.writeHead(500, { 'Content-Type': 'application/json'});
-          res.end(`{ "error" : "resource /${req.url} does not exist" }`)
+          res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Secure Area"'});
+          res.end('<html><body>Invalid Authentication Credentials</body></html>')
         }
       }
-  }
+
+      function runDelete() {
+          let element = req.url.split('.');
+          element = element[0];
+          element = toTitleCase(element);
+          existingFiles.forEach((x) => {
+            if(x === req.url) {
+              exists = true;
+            }
+          })
+          if(exists) {
+            fs.unlink(`./public/${req.url}`, (err) => {
+              if (err) throw err;
+              let li = `      <a href="/${req.url}">${element}</a>`;
+              deleteLi(li, () => {
+                changeNumber('sub', number);
+              });
+              res.writeHead(200, { 'Content-Type': 'application/json'});
+              res.end(`{ "success" : true }`)
+            });
+          } else {
+            res.writeHead(500, { 'Content-Type': 'application/json'});
+            res.end(`{ "error" : "resource /${req.url} does not exist" }`)
+          }
+        }
+      }
+}
 
   fs.readdir('./public', (err, files) => {
       if (err) throw err;
@@ -201,7 +293,6 @@ function createNewLi(li, done) {
     data = fileContent.toString().split("\n");
     data.splice(12, 0, li);
     var text = data.join("\n");
-    console.log(text);
 
   fs.writeFile('./public/index.html', text, function (err) {
     if (err) return console.log(err);
@@ -256,10 +347,8 @@ function changeNumber(operation, number) {
     let wordsArr = data[10].split(' ')
     wordsArr.splice(4,1, `${number}</h3>`)
     wordsArr = wordsArr.join(' ');
-    console.log(wordsArr)
     data.splice(10, 1, wordsArr);
     var text = data.join("\n");
-    console.log(text);
 
   fs.writeFile('./public/index.html', text, function (err) {
     if (err) return console.log(err);
