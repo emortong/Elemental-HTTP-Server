@@ -1,13 +1,14 @@
 const http = require('http');
 const fs = require('fs');
 const querystring = require('querystring');
-
 let existingFiles = null;
 
 const server = http.createServer((req,res) => {
 
   function setResponse() {
+    let number = existingFiles.length - 5;
     console.log(req.method)
+    console.log(existingFiles)
     if(req.url !== '/') {
       req.url = req.url.substring(1);
     }
@@ -42,7 +43,9 @@ const server = http.createServer((req,res) => {
           })
           res.writeHead(200, { 'Content-Type': 'application/json'});
           let li = `    <li>\n      <a href="/${fileName}">${elementName}</a>\n    </li>`
-          createNewLi(li);
+          createNewLi(li, () => {
+            changeNumber('add', number);
+          });
           res.end(`{ "success" : true }`);
         } else {
             res.end(`{ "success" : false }`);
@@ -149,17 +152,17 @@ const server = http.createServer((req,res) => {
           fs.unlink(`./public/${req.url}`, (err) => {
             if (err) throw err;
             let li = `      <a href="/${req.url}">${element}</a>`;
-            deleteLi(li);
+            deleteLi(li, () => {
+              changeNumber('sub', number);
+            });
             res.writeHead(200, { 'Content-Type': 'application/json'});
             res.end(`{ "success" : true }`)
           });
         } else {
           res.writeHead(500, { 'Content-Type': 'application/json'});
           res.end(`{ "error" : "resource /${req.url} does not exist" }`)
-
         }
       }
-
   }
 
   fs.readdir('./public', (err, files) => {
@@ -193,14 +196,16 @@ function generateTemplate(elementName, elementSymbol, elementAtomicNumber, eleme
 </html>`
 }
 
-function createNewLi(li) {
+function createNewLi(li, done) {
   fs.readFile('./public/index.html', (err, fileContent) => {
     data = fileContent.toString().split("\n");
     data.splice(12, 0, li);
     var text = data.join("\n");
+    console.log(text);
 
   fs.writeFile('./public/index.html', text, function (err) {
     if (err) return console.log(err);
+    done()
     });
   })
 }
@@ -218,7 +223,7 @@ function replaceEl(newEl, oldEl) {
   })
 }
 
-function deleteLi(li) {
+function deleteLi(li, done) {
   fs.readFile('./public/index.html', (err, fileContent) => {
     data = fileContent.toString().split("\n");
     let indextoDelete = data.indexOf(li) -1;
@@ -229,6 +234,7 @@ function deleteLi(li) {
 
   fs.writeFile('./public/index.html', text, function (err) {
     if (err) return console.log(err);
+    done()
     });
   })
 }
@@ -237,4 +243,26 @@ function toTitleCase(str) {
   return str.replace(/\w\S*/g, function(txt){
     return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
   });
+}
+
+function changeNumber(operation, number) {
+  if(operation === 'add') {
+    number += 1;
+  } else {
+    number-= 1;
+  }
+  fs.readFile('./public/index.html', (err, fileContent) => {
+    data = fileContent.toString().split("\n");
+    let wordsArr = data[10].split(' ')
+    wordsArr.splice(4,1, `${number}</h3>`)
+    wordsArr = wordsArr.join(' ');
+    console.log(wordsArr)
+    data.splice(10, 1, wordsArr);
+    var text = data.join("\n");
+    console.log(text);
+
+  fs.writeFile('./public/index.html', text, function (err) {
+    if (err) return console.log(err);
+    });
+  })
 }

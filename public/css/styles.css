@@ -24,6 +24,7 @@ time, mark, audio, video {
   font-size: 100%;
   font: inherit;
   vertical-align: baseline;
+  color: white;
 }
 /* HTML5 display-role reset for older browsers */
 article, aside, details, figcaption, figure,
@@ -107,4 +108,35 @@ a{
 a:hover{
   color: #C6C5AC;
   border-bottom: 1px dashed #C6C5AC;
+}
+
+input{
+  padding: 4px;
+  margin: 8px 0px;
+  width: 450px;
+}
+
+#description{
+  height: 80px;
+
+}
+
+#submit{
+  background-color: #B4D12B;
+  width: 463px;
+}
+
+#create{
+  width: 110px;
+  height: 20px;
+  color: #3F3F4E;
+  background-color: #879642;
+  text-align: center;
+  margin-top: 10px;
+}
+
+#createText{
+  border-bottom: none;
+  color: white;
+  margin-top: 100px;
 }
