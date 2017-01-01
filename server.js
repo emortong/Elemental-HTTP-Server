@@ -13,16 +13,15 @@ const server = http.createServer((req,res) => {
       req.url = req.url.substring(1);
     }
     let exists = false;
-
+    //========================
+    //   POST
+    //========================
     if(req.method === 'POST' && req.url === 'element') {
       let rawData = '';
       req.on('data', (data) => {
-        // let exists = false;
         rawData += data;
         let parsedData = querystring.parse(rawData);
-        console.log(parsedData);
         let fileName = `${parsedData.elementName.toLowerCase()}.html`;
-        console.log(fileName);
         let elementName = parsedData.elementName;
         let elementSymbol = parsedData.elementSymbol;
         let elementAtomicNumber = parsedData.elementAtomicNumber;
@@ -50,9 +49,11 @@ const server = http.createServer((req,res) => {
       })
     } // close POST method conditional
 
+    //========================
+    //   GET
+    //========================
+
     if(req.method === 'GET') {
-        console.log(req.url);
-        // let exists = false;
         if(req.url === '/') {
           req.url = 'index.html'
         }
@@ -84,6 +85,10 @@ const server = http.createServer((req,res) => {
         }
     }
 
+    //========================
+    //   PUT
+    //========================
+
     if(req.method === 'PUT') {
     res.setHeader('Content-Type', 'application/json');
     let rawData = '';
@@ -91,9 +96,7 @@ const server = http.createServer((req,res) => {
      req.on('data', (data) => {
         rawData += data;
         let parsedData = querystring.parse(rawData);
-        console.log(parsedData);
         let fileName = `${parsedData.elementName.toLowerCase()}.html`;
-        console.log(fileName);
         let elementName = parsedData.elementName;
         let elementSymbol = parsedData.elementSymbol;
         let elementAtomicNumber = parsedData.elementAtomicNumber;
@@ -109,7 +112,6 @@ const server = http.createServer((req,res) => {
        if(exists) {
           let oldElement = req.url.split('.');
           oldElement = toTitleCase(oldElement[0]);
-          console.log(oldElement);
           let fileWriteStream = fs.readFile(`./public/${req.url}`)
           fs.writeFile(`./public/${req.url}`, template, (err) => {
             if (err) throw err;
@@ -120,43 +122,44 @@ const server = http.createServer((req,res) => {
           res.writeHead(200, { 'Content-Type': 'application/json'});
           let newEl = `      <a href="/${fileName}">${elementName}</a>`;
           let oldEl = `      <a href="/${req.url}">${oldElement}</a>`
-          console.log(newEl)
-          console.log(oldEl)
           replaceEl(newEl, oldEl);
           res.end(`{ "success" : true }`);
         } else {
           res.statusCode = 500;
-          res.end(`{ "error" : "resource /carbon.html does not exist" }`);
+          res.end(`{ "error" : "resource /${req.url} does not exist" }`);
         }
       });
     }
 
-    if(req.method === 'DELETE') {
-      console.log(req.url)
-      let element = req.url.split('.');
-      element = element[0];
-      element = toTitleCase(element);
-      existingFiles.forEach((x) => {
-        if(x === req.url) {
-          exists = true;
+      //========================
+      //   DELETE
+      //========================
+
+      if(req.method === 'DELETE') {
+        let element = req.url.split('.');
+        element = element[0];
+        element = toTitleCase(element);
+        existingFiles.forEach((x) => {
+          if(x === req.url) {
+            exists = true;
+          }
+        })
+        if(exists) {
+          fs.unlink(`./public/${req.url}`, (err) => {
+            if (err) throw err;
+            let li = `      <a href="/${req.url}">${element}</a>`;
+            deleteLi(li);
+            res.writeHead(200, { 'Content-Type': 'application/json'});
+            res.end(`{ "success" : true }`)
+          });
+        } else {
+          res.writeHead(500, { 'Content-Type': 'application/json'});
+          res.end(`{ "error" : "resource /${req.url} does not exist" }`)
+
         }
-      })
-      if(exists) {
-        fs.unlink(`./public/${req.url}`, (err) => {
-          if (err) throw err;
-          let li = `      <a href="/${req.url}">${element}</a>`;
-          deleteLi(li);
-          res.end(`{ "success" : true }`)
-        });
-      } else {
-        res.statusCode = 500;
-        res.setHeader('Content-Type', 'application/json');
-        res.end(`{ "error" : "resource /carbon.html does not exist" }`)
-
       }
-    }
 
-  } // setResponse
+  }
 
   fs.readdir('./public', (err, files) => {
       if (err) throw err;
@@ -164,7 +167,7 @@ const server = http.createServer((req,res) => {
       setResponse(); // everything is called from here bc async
     });
 
-}); // closing bracket for createServer
+}); // close server
 
 server.listen(8080, () => {
   console.log('opened server on', server.address())
@@ -205,7 +208,6 @@ function replaceEl(newEl, oldEl) {
   fs.readFile('./public/index.html', (err, fileContent) => {
     data = fileContent.toString().split("\n");
     let oldElIndex = data.indexOf(oldEl);
-    console.log(oldElIndex);
     data.splice(oldElIndex, 1, newEl);
     var text = data.join("\n");
 
@@ -219,7 +221,6 @@ function deleteLi(li) {
   fs.readFile('./public/index.html', (err, fileContent) => {
     data = fileContent.toString().split("\n");
     let indextoDelete = data.indexOf(li) -1;
-    console.log(li);
     data.splice(indextoDelete, 1);
     data.splice(indextoDelete, 1);
     data.splice(indextoDelete, 1);
@@ -232,7 +233,7 @@ function deleteLi(li) {
 }
 
 function toTitleCase(str) {
-    return str.replace(/\w\S*/g, function(txt){
-      return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
-    });
+  return str.replace(/\w\S*/g, function(txt){
+    return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+  });
 }
