@@ -47,17 +47,10 @@ const server = http.createServer((req,res) => {
               if (err) throw err;
             })
             res.writeHead(200, { 'Content-Type': 'application/json'});
-            if(authorized === false) {
-              let li = `    <li>\n      <a href="/${fileName}">${elementName}</a>\n    </li>`
+              let li = `    <li>\n      <a href="/${fileName}">${elementName}</a> <button type="button" id="deleteBtn" onClick="deleteReq(event)" data-pageurl="/${fileName}">X</button>\n    </li>`
               createNewLi(li, () => {
               changeNumber('add', number);
             });
-            } else {
-              let li = `    <li>\n      <a href="/${fileName}">${elementName}</a> <button type="button" id="deleteBtn" onClick="deleteReq(event)" data-pageurl="/${req.url}">X</button>\n    </li>`
-              createNewLi(li, () => {
-              changeNumber('add', number);
-            });
-            }
             res.end(`{ "success" : true }`);
           } else {
               res.end(`{ "success" : false }`);
@@ -160,9 +153,15 @@ const server = http.createServer((req,res) => {
                 if (err) throw err;
               })
               res.writeHead(200, { 'Content-Type': 'application/json'});
-              let newEl = `      <a href="/${fileName}">${elementName}</a>`;
-              let oldEl = `      <a href="/${req.url}">${oldElement}</a>`
-              replaceEl(newEl, oldEl);
+              if(authorized === false) {
+                let newEl = `      <a href="/${fileName}">${elementName}</a>`;
+                let oldEl = `      <a href="/${req.url}">${oldElement}</a>`
+                replaceEl(newEl, oldEl);
+              } else {
+                let newEl = `      <a href="/${fileName}">${elementName}</a> <button type="button" id="deleteBtn" onClick="deleteReq(event)" data-pageurl="/${req.url}">X</button>`;
+                let oldEl = `      <a href="/${req.url}">${oldElement}</a> <button type="button" id="deleteBtn" onClick="deleteReq(event)" data-pageurl="/${req.url}">X</button>`
+                replaceEl(newEl, oldEl);
+               }
               res.end(`{ "success" : true }`);
             } else {
               res.statusCode = 500;
@@ -311,11 +310,8 @@ function deleteBtns() {
     data.forEach((x, i) => {
       let dataArr = x.split(' ');
       if(dataArr[6] === '<a' && dataArr[7] !== 'href="/create.html"' && dataArr[8] !== '<button') {
-        console.log('dataArr: ', dataArr);
         let url = dataArr[7].split('"');
-        console.log('url: ', url);
-        url = url[1]
-        console.log('url:', url)
+        url = url[1];
         let btn = `<button type="button" id="deleteBtn" onClick="deleteReq(event)" data-pageurl="${url}">X</button>`;
         dataArr.push(btn);
       }
@@ -329,4 +325,3 @@ function deleteBtns() {
     });
   })
 }
-deleteBtns();
