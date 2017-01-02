@@ -130,13 +130,23 @@ input{
   width: 110px;
   height: 20px;
   color: #3F3F4E;
-  background-color: #879642;
+  background-color: #B4D12B;
   text-align: center;
   margin-top: 10px;
 }
 
 #createText{
   border-bottom: none;
-  color: white;
+  color: #3F3F4E;
   margin-top: 100px;
+}
+
+#deleteBtn {
+  width: 20px;
+  height: 20px;
+  border-radius: 0%;
+  border: none;
+  color: #3F3F4E;
+  margin-left: 6px;
+  background-color: #B4D12B;
 }

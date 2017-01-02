@@ -11,7 +11,7 @@ let auth = {
 const server = http.createServer((req,res) => {
 
   function setResponse() {
-    let number = existingFiles.length - 5;
+    let number = existingFiles.length - 6;
     console.log(req.method)
     if(req.url !== '/') {
       req.url = req.url.substring(1);
@@ -24,27 +24,6 @@ const server = http.createServer((req,res) => {
     //========================
 
     if(req.method === 'POST' && req.url === 'element') {
-      console.log(req.headers.authorization);
-      if(req.headers.authorization === undefined) {
-        res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Secure Area"'});
-        res.end('<html><body>Not Authorized</body></html>')
-        console.log('hi')
-      } else {
-        let authArr = req.headers.authorization.split(' ');
-        let encodedString = authArr[1];
-        let base64Buffer = new Buffer(encodedString, 'base64');
-        let decodedString = base64Buffer.toString();
-        let userAndPass = decodedString.split(':');
-
-        if(userAndPass[0] === auth.username && userAndPass[1] === auth.password) {
-          authorized = true;
-          runPost()
-        } else {
-          res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Secure Area"'});
-          res.end('<html><body>Invalid Authentication Credentials</body></html>')
-        }
-      }
-      function runPost() {
         let rawData = '';
         req.on('data', (data) => {
           rawData += data;
@@ -68,16 +47,22 @@ const server = http.createServer((req,res) => {
               if (err) throw err;
             })
             res.writeHead(200, { 'Content-Type': 'application/json'});
-            let li = `    <li>\n      <a href="/${fileName}">${elementName}</a>\n    </li>`
-            createNewLi(li, () => {
+            if(authorized === false) {
+              let li = `    <li>\n      <a href="/${fileName}">${elementName}</a>\n    </li>`
+              createNewLi(li, () => {
               changeNumber('add', number);
             });
+            } else {
+              let li = `    <li>\n      <a href="/${fileName}">${elementName}</a> <button type="button" id="deleteBtn" onClick="deleteReq(event)" data-pageurl="/${req.url}">X</button>\n    </li>`
+              createNewLi(li, () => {
+              changeNumber('add', number);
+            });
+            }
             res.end(`{ "success" : true }`);
           } else {
               res.end(`{ "success" : false }`);
             }
         })
-      }
     }
 
     //========================
@@ -102,6 +87,7 @@ const server = http.createServer((req,res) => {
 
                 if(userAndPass[0] === auth.username && userAndPass[1] === auth.password) {
                   authorized = true;
+                  deleteBtns();
                   // pass through
                 } else {
                   res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Secure Area"'});
@@ -143,26 +129,7 @@ const server = http.createServer((req,res) => {
     //========================
 
     if(req.method === 'PUT') {
-      if(req.headers.authorization === undefined) {
-        res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Secure Area"'});
-        res.end('<html><body>Not Authorized</body></html>')
-        console.log('hi')
-      } else {
-        let authArr = req.headers.authorization.split(' ');
-        let encodedString = authArr[1];
-        let base64Buffer = new Buffer(encodedString, 'base64');
-        let decodedString = base64Buffer.toString();
-        let userAndPass = decodedString.split(':');
 
-        if(userAndPass[0] === auth.username && userAndPass[1] === auth.password) {
-          authorized = true;
-          runPut()
-        } else {
-          res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Secure Area"'});
-          res.end('<html><body>Invalid Authentication Credentials</body></html>')
-        }
-      }
-      function runPut() {
         res.setHeader('Content-Type', 'application/json');
         let rawData = '';
 
@@ -202,7 +169,6 @@ const server = http.createServer((req,res) => {
               res.end(`{ "error" : "resource /${req.url} does not exist" }`);
             }
           });
-        }
       }
 
       //========================
@@ -210,51 +176,33 @@ const server = http.createServer((req,res) => {
       //========================
 
       if(req.method === 'DELETE') {
-        if(req.headers.authorization === undefined) {
-        res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Secure Area"'});
-        res.end('<html><body>Not Authorized</body></html>')
-        console.log('hi')
-      } else {
-        let authArr = req.headers.authorization.split(' ');
-        let encodedString = authArr[1];
-        let base64Buffer = new Buffer(encodedString, 'base64');
-        let decodedString = base64Buffer.toString();
-        let userAndPass = decodedString.split(':');
+            console.log('req.url: ', req.url);
+            let element = req.url.split('.');
+            element = element[0];
+            element = toTitleCase(element);
 
-        if(userAndPass[0] === auth.username && userAndPass[1] === auth.password) {
-          authorized = true;
-          runDelete()
-        } else {
-          res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Secure Area"'});
-          res.end('<html><body>Invalid Authentication Credentials</body></html>')
-        }
-      }
+            existingFiles.forEach((x) => {
+              if(x === req.url) {
+                exists = true;
+              }
+            })
 
-      function runDelete() {
-          let element = req.url.split('.');
-          element = element[0];
-          element = toTitleCase(element);
-          existingFiles.forEach((x) => {
-            if(x === req.url) {
-              exists = true;
-            }
-          })
-          if(exists) {
-            fs.unlink(`./public/${req.url}`, (err) => {
-              if (err) throw err;
-              let li = `      <a href="/${req.url}">${element}</a>`;
-              deleteLi(li, () => {
-                changeNumber('sub', number);
+            if(exists) {
+              fs.unlink(`./public/${req.url}`, (err) => {
+                if (err) throw err;
+                let li = `      <a href="/${req.url}">${element}</a> <button type="button" id="deleteBtn" onClick="deleteReq(event)" data-pageurl="/${req.url}">X</button>`;
+                deleteLi(li, () => {
+                  changeNumber('sub', number);
+                });
+                res.writeHead(200, { 'Content-Type': 'application/json'});
+                res.end(`{ "success" : true }`)
               });
-              res.writeHead(200, { 'Content-Type': 'application/json'});
-              res.end(`{ "success" : true }`)
-            });
-          } else {
-            res.writeHead(500, { 'Content-Type': 'application/json'});
-            res.end(`{ "error" : "resource /${req.url} does not exist" }`)
-          }
+            } else {
+              res.writeHead(500, { 'Content-Type': 'application/json'});
+              res.end(`{ "error" : "resource /${req.url} does not exist" }`)
+            }
+
         }
-      }
 }
 
   fs.readdir('./public', (err, files) => {
@@ -355,3 +303,30 @@ function changeNumber(operation, number) {
     });
   })
 }
+
+function deleteBtns() {
+  console.log('hi');
+  fs.readFile('./public/index.html', (err, fileContent) => {
+    data = fileContent.toString().split("\n");
+    data.forEach((x, i) => {
+      let dataArr = x.split(' ');
+      if(dataArr[6] === '<a' && dataArr[7] !== 'href="/create.html"' && dataArr[8] !== '<button') {
+        console.log('dataArr: ', dataArr);
+        let url = dataArr[7].split('"');
+        console.log('url: ', url);
+        url = url[1]
+        console.log('url:', url)
+        let btn = `<button type="button" id="deleteBtn" onClick="deleteReq(event)" data-pageurl="${url}">X</button>`;
+        dataArr.push(btn);
+      }
+      dataArr = dataArr.join(' ');
+      data.splice(i, 1, dataArr);
+    })
+    var text = data.join("\n");
+
+  fs.writeFile('./public/index.html', text, function (err) {
+    if (err) return console.log(err);
+    });
+  })
+}
+deleteBtns();
